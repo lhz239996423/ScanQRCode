@@ -26,5 +26,6 @@ ScanQRCode
 为了便于演示，已将redis数据过期默认为20s，支持更改
 
 大致的实现流程如下：
+
 ![image](https://user-images.githubusercontent.com/51904762/163546138-a3e284c7-10d7-481b-bf5a-1ce4c8b1c726.png)
 
