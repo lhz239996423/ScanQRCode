@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>移动端扫码登录</title>
+  <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+  <script src="https://cdn.bootcss.com/socket.io/2.1.1/socket.io.js"></script>
+  <!-- <script src="js/socket.io.js"></script> -->
+  <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+  <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      text-decoration: none;
+    }
+    html,
+    body,
+    #app {
+      width: 100%;
+      height: 100%;
+    }
+    #app {
+      margin: 0 auto;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+    .title {
+      margin-top: 10px;
+    }
+    .QRcode {
+      margin-top: 20px;
+      width: 240px;
+      height: 240px;
+      position: relative;
+    }
+    .QRcode_overtime {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      left: 0;
+      top: 0;
+      background: rgba(0, 0, 0, 0.68);
+      color: #fff;
+      text-align: center;
+      z-index: 2;
+      font-size: 18px;
+      cursor: pointer;
+    }
+    .QRcode_overtime img {
+      width: 40px;
+      height: 40px;
+      margin-top: 15px;
+    }
+    .QRcode_success {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      left: 0;
+      top: 0;
+      background: rgba(0, 0, 0, 0.68);
+      color: #fff;
+      text-align: center;
+      z-index: 3;
+      font-size: 18px;
+    }
+    .QRcode_success img {
+      width: 40px;
+      height: 40px;
+      margin-bottom: 15px;
+    }
+    .QRcode_img {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      z-index: 1;
+      left: 0;
+      top: 0;
+    }
+    .info {
+      color: #8d8d8d;
+      margin-top: 10px;
+    }
+    .tips {
+      margin-top: 10px;
+      background: #8d8d8d;
+      border-radius: 24px;
+      padding: 4px 14px;
+      font-size: 13px;
+      color: #fff;
+    }
+    .WapEmpower{
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 240px;
+      height: 305px;
+    }
+    .WapEmpower input{
+      width: 200px;
+      height: 28px;
+      border: none;
+      border-bottom: 1px solid #999;
+      margin-top: 20px;
+      outline: none;
+      font-size: 15px;
+    }
+    .WapEmpower .input-text{
+      margin-top: 35px;
+    }
+    .WapEmpower button {
+      width: 200px;
+      height: 32px;
+      margin-top: 40px;
+      line-height: 7px;
+      color: #499Ef9;
+      border-color: #C6E2F6;
+    }
+    .tips {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <a href="https://github.com/lhz239996423/map-panel-demo">
+      <img src="https://vkceyugu.cdn.bspapp.com/VKCEYUGU-f184e7c3-1912-41b2-b81f-435d1b37c7b4/5a7f902b-21a7-4822-884f-925219eacc4b.png" alt="Fork me on Github" />
+    </a>
+    <h2 class="title">移动端扫码登录 示例</h2>
+    <p class="info">Nodejs + Redis + Socket + Mysql + Vue + Uni-app</p>
+    <br>
+    <el-tabs v-model="activeName" stretch @tab-click="handleClick">
+      <el-tab-pane label="扫码登录" name="ScanCode">
+        <div class="QRcode">
+          <!--扫码成功的样式-->
+          <div class="QRcode_success" v-if="successShow">
+            <img src="./img/success.png" alt="success">
+            <p>扫码成功</p>
+          </div>
+          <!--二维码失效的样式-->
+          <div class="QRcode_overtime" @click="AgainScanCode" v-if="overtimeShow">
+            <p>二维码失效，点击重新获取</p>
+            <img src="./img/reload.png" alt="reload.png">
+          </div>
+          <!--真正让用户扫的二维码-->
+          <img class="QRcode_img" :src="base64QRcode.QRcode">
+        </div>
+        <p class="tips">{{ tipsText }}</p>
+      </el-tab-pane>
+      <el-tab-pane label="账号登录" name="WapEmpower">
+        <div class="WapEmpower">
+          <input class="input-text" type="text" name="username" placeholder="账号"/>
+          <input type="password" name="password" placeholder="密码"/>
+          <p class="tips" v-if="WapSuccess.length != 0">{{WapSuccess}}</p>
+          <el-button  @click="HandleLogin"> 登 录 </el-button>
+        </div>
+      </el-tab-pane>
+    </el-tabs>
+  </div>
+</body>
+
+<script>
+  var app = new Vue({
+    el: '#app',
+    data: {
+      socket: null,          // 保存 socket链接
+      socketURL: 'http://192.168.2.200:9080',  // socket 服务的地址
+      base64QRcode: '',      // 保存后端给的二维码和uuid
+      timerCheck: null,      // 保存定时器
+      tipsText: '请扫码',        // 提示文字
+      overtimeShow: false,   // 是否显示二维码失效
+      successShow: false,    // 是否显示扫码成功
+      ScanCodeShow: false,   // 如果用户扫码了，那么不显示 等待用户扫码中 的提示文字
+      activeName: 'ScanCode',// 保存当前tab的类型
+      WapSuccess: ''         // 授权登录成功后的提示信息
+    },
+    created() {
+      // 创建 Socket 链接
+      this.socket = io(this.socketURL,{ transports: ['websocket'] });
+      this.handleClick();
+    },
+    methods: {
+      // 判断点击的是哪个tabs，默认激活调用 【移动端扫码登录】
+      handleClick() {
+        switch (this.activeName) {
+          case "ScanCode":
+            this.getQRcode();
+            this.ScanCodeOvertime();
+            this.ScanCodeing();
+            break;
+          case "WapEmpower":
+            // 切换到正常的Web登录
+            break;
+        }
+      },
+      // 请求登录按钮被点击，走正常的PC登录
+      HandleLogin() {
+        this.$notify.info({ title: '提示', message: '请先实现Web登录哦！' });
+      },
+      getQRcode() {
+        // 向服务器要uuid和二维码
+        this.socket.emit('getQRcode');
+        this.sendQRcode();
+      },
+      // 接受服务器给的uuid和二维码
+      sendQRcode() {
+        this.socket.on('sendQRcode', res => this.base64QRcode = res);
+        this.checkScanCode();
+      },
+      checkScanCode() {
+        // 等待扫码
+        this.socket.on('waitScanCode', res => {
+          if (!this.ScanCodeShow) {
+            this.tipsText = '等待用户扫码'
+          }
+        });
+        // 扫码成功
+        this.socket.on('SuccessScanCode', (res) => {
+          localStorage.setItem("id", JSON.parse(res).id);
+          //this.tipsText = `扫码成功用户信息为：${res}`;   // 提示信息
+          this.successShow = true;                    // 显示扫码成功的样式
+          clearInterval(this.timerCheck);             // 扫码成功，清除定时器，不再询问服务器
+        });
+        // 每1秒询问一次服务器，用户App端是否扫码
+        this.timerCheck = setInterval(() => this.socket.emit("checkScanCode", this.base64QRcode.uuid),1000);
+      },
+      // 如果二维码超时
+      ScanCodeOvertime() {
+        this.socket.on('ScanCodeOvertime', () => {
+          // 如果二维码已经失效，并且用户还未扫码的话，那么才去显示二维码失效的样式
+          // 之所以在这判断一次的原因，因为如果用户扫码成功之后，二维码才失效
+          // 页面上会显示二维码失效的样式，体验不好。
+          if(!this.successShow) {
+            console.log("【Vue端】：二维码超时");
+            clearInterval(this.timerCheck); // 二维码失效，不再询问服务器
+            this.overtimeShow = true;       // 显示二维码失效的样式
+            this.tipsText = "二维码失效";     // 清空等待扫码文字
+          }
+        })
+      },
+      // 已扫码但未确认
+      ScanCodeing() {
+        this.socket.on('ScanCodeing', () => {
+          this.ScanCodeShow = true;
+          this.tipsText = "您已扫码，请在手机上确认登录！"
+        })
+      },
+      // 二维码失效后，用户点击二维码重新获取二维码的事件
+      AgainScanCode() {
+        this.overtimeShow = false;
+        this.ScanCodeShow = false;
+        this.socket.emit('getQRcode');
+        this.sendQRcode();
+      }
+    }
+  })
+</script>
+</html>
