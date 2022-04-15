@@ -3,6 +3,8 @@ ScanQRCode
 
 借鉴了编码猿的思路，在其开源代码上修改的项目
 
+在公司项目中接触到了这么个需求，需要支持Web和APP、公众号的扫码登录。于是就找了个项目练练手，熟悉和锻炼一下设计流程。
+
 1、NodeServer
 
 使用Node.js运行服务器，redis缓存数据
@@ -29,3 +31,4 @@ ScanQRCode
 
 ![image](https://user-images.githubusercontent.com/51904762/163546138-a3e284c7-10d7-481b-bf5a-1ce4c8b1c726.png)
 
+总结一下，一技傍身，事业不愁。了解未知，坚持学习，成就自我
