@@ -2,6 +2,7 @@
 ScanQRCode
 
 借鉴了编码猿的思路，在其开源代码上修改的项目
+
 1、NodeServer
 使用Node.js运行服务器，redis缓存数据
 需要安装redis，默认链接0数据库
