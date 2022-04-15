@@ -6,15 +6,12 @@ ScanQRCode
 1、NodeServer
 
 使用Node.js运行服务器，redis缓存数据
-
 需要安装redis，默认链接0数据库
 
 2、UniAppCode
 
 使用uni-app开发APP，HbuildX运行
-
 模拟器调试需要先安装手机模拟器（无法使用相机，只能使用相册）
-
 真机调试需要允许USB调试
 
 3、ScanQRCode
